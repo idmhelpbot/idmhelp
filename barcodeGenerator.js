@@ -3,10 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const Jimp = require('jimp');
 
-const dataFiles = [
-  path.join(__dirname, '..', 'data', 'barcodesheet.json'),
-  path.join(__dirname, '..', 'data', 'plucode.json'),
-];
+const dataDir = path.join(__dirname, 'data');
+
+const barcode = JSON.parse(fs.readFileSync(path.join(dataDir, 'barcodesheet.json'), 'utf8'));
+const plucode = JSON.parse(fs.readFileSync(path.join(dataDir, 'plucode.json'), 'utf8'));
+
 
 
 /**
