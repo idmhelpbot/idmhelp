@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scan & Cari Produk t.me/idm_help_bot</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 16px;
+      margin: 0;
+      background: #f9f9f9;
+      font-size: 18px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .search-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .search-group input {
+      flex: 1;
+      padding: 12px;
+      font-size: 18px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .search-group button {
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #searchBtn {
+      font-size: 16px;
+      background: #17a2b8;
+      color: white;
+      padding: 0 12px;
+    }
+
+    #scanBtn {
+      font-size: 24px;
+      background: #007bff;
+      color: white;
+      padding: 0 14px;
+    }
+
+    #cameraPreview {
+      margin-top: 12px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .product {
+      background: white;
+      padding: 12px;
+      border-radius: 10px;
+      margin: 10px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .product img {
+      width: 100px;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    .finalPriceBox {
+      background: #fff700;
+      color: #000;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 26px;
+      font-weight: bold;
+      font-family: 'Segoe UI', sans-serif;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .normalPriceBox {
+      background: #28a745;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 26px;
+      font-weight: bold;
+      font-family: 'Trebuchet MS', sans-serif;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .finalPriceMini {
+      background: #fff700;
+      color: #000;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      font-family: 'Segoe UI', sans-serif;
+      box-shadow: 0 0 3px rgba(0,0,0,0.1);
+    }
+
+    .normalPriceMini {
+      background: #28a745;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      font-family: 'Trebuchet MS', sans-serif;
+      box-shadow: 0 0 3px rgba(0,0,0,0.1);
+    }
+
+    #barcodeModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #barcodeModalContent {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      max-width: 350px;
+      width: 90%;
+      text-align: center;
+      position: relative;
+    }
+
+    #closeModal {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    #modalImage {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 10px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    #modalName {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 12px;
+    }
+
+    #modalPrice {
+      font-size: 20px;
+      margin: 8px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #modalPrice s {
+      color: red;
+      font-size: 16px;
+      margin-right: 6px;
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+ <h1 class="app-title">
+  🔍 <span class="blue-text">Cari Produk KlikIndomaret</span><br>
+  <small class="bot-credit"><a href="https://t.me/idm_help_bot" target="_blank">idm_help_bot</a></small>
+</h1>
+
+
+  <div class="search-group">
+    <input id="unifiedInput" type="text" placeholder="🔍 Nama / PLU / Barcode...">
+    <button id="searchBtn">Cari</button>
+    <button id="scanBtn">📷</button>
+  </div>
+
+  <div id="cameraPreview"></div>
+  <div id="results"></div>
+
+  <!-- Modal -->
+  <div id="barcodeModal">
+    <div id="barcodeModalContent">
+      <span id="closeModal">❌</span>
+      <img id="modalImage" src="">
+      <div id="modalName"></div>
+      <div id="modalPrice"></div>
+      <div id="modalPlu"></div>
+      <img id="modalBarcode" src="">
+    </div>
+  </div>
+
+  <script>
+    let barcodeToPluMap = {};
+    let scanner = null;
+
+    fetch('/barcode-mapping')
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(item => {
+          barcodeToPluMap[item.barcode] = item.plu;
+        });
+      });
+
+    // Enter atau manual input
+    document.getElementById('unifiedInput').addEventListener('change', handleSearch);
+
+    // Tombol "Cari"
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const input = document.getElementById('unifiedInput');
+      input.dispatchEvent(new Event('change'));
+    });
+
+    async function handleSearch(e) {
+      const inputEl = document.getElementById('unifiedInput');
+      const input = inputEl.value.trim();
+      if (!input) return;
+
+      const isBarcode = barcodeToPluMap[input];
+      if (isBarcode) {
+        const res = await fetch(`/search?q=${isBarcode}`);
+        const data = await res.json();
+        if (!data.items?.length) return alert(`🚫 Produk tidak ditemukan (PLU: ${isBarcode})`);
+        showModal(data.items[0]);
+      } else {
+        const allItems = [];
+        let page = 0;
+
+        while (true) {
+          const res = await fetch(`/search?q=${encodeURIComponent(input)}&page=${page}`);
+          const data = await res.json();
+          if (!data.items?.length) break;
+          allItems.push(...data.items);
+          if (!data.nextPage) break;
+          page++;
+        }
+
+        if (!allItems.length) return alert(`🚫 Produk tidak ditemukan: ${input}`);
+
+        document.getElementById('results').innerHTML = '';
+        allItems.forEach(item => {
+          const el = document.createElement('div');
+          el.className = 'product';
+          const hargaHTML = item.finalPrice
+            ? `<s>${item.price}</s> <span class="finalPriceMini">${item.finalPrice}</span>`
+            : `<span class="normalPriceMini">${item.price}</span>`;
+
+          el.innerHTML = `
+            <img src="${item.image}" alt="${item.name}">
+            <div>
+              <strong style="font-size:14px;">${item.name}</strong><br>
+              ${hargaHTML}<br>
+              PLU: <code>${item.plu}</code>
+            </div>
+          `;
+          el.addEventListener('click', () => showModal(item));
+          document.getElementById('results').appendChild(el);
+        });
+      }
+
+      inputEl.value = '';
+    }
+
+    document.getElementById('scanBtn').addEventListener('click', () => {
+      const preview = document.getElementById('cameraPreview');
+      preview.style.display = 'block';
+      preview.innerHTML = '';
+
+      if (scanner) {
+        scanner.clear();
+        scanner = null;
+      }
+
+      scanner = new Html5Qrcode("cameraPreview");
+      scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async (decodedText) => {
+          const barcode = decodedText.trim();
+          const plu = barcodeToPluMap[barcode];
+          if (!plu) return alert(`❌ Barcode ${barcode} tidak ditemukan.`);
+
+          const res = await fetch(`/search?q=${plu}`);
+          const data = await res.json();
+          if (!data.items?.length) return alert(`🚫 Produk tidak ditemukan (PLU: ${plu})`);
+
+          showModal(data.items[0]);
+        },
+        (err) => {
+          console.warn('Scanning...', err);
+        }
+      ).catch(err => {
+        alert('❌ Tidak bisa akses kamera: ' + err);
+      });
+    });
+
+    function showModal(item) {
+      document.getElementById('modalImage').src = item.image;
+      document.getElementById('modalName').textContent = item.name;
+      document.getElementById('modalPrice').innerHTML = item.finalPrice
+        ? `<s>${item.price}</s> <span class="finalPriceBox">${item.finalPrice}</span>`
+        : `<span class="normalPriceBox">${item.price}</span>`;
+      document.getElementById('modalPlu').textContent = 'PLU: ' + item.plu;
+      document.getElementById('modalBarcode').src = `/barcode/${item.plu}`;
+      document.getElementById('barcodeModal').style.display = 'flex';
+    }
+
+    document.getElementById('closeModal').addEventListener('click', async () => {
+      document.getElementById('barcodeModal').style.display = 'none';
+
+      if (scanner) {
+        await scanner.stop().catch(() => {});
+        scanner.clear();
+        scanner = null;
+      }
+
+      document.getElementById('cameraPreview').style.display = 'none';
+      document.getElementById('cameraPreview').innerHTML = '';
+      document.getElementById('unifiedInput').value = '';
+    });
+
+    document.getElementById('barcodeModal').addEventListener('click', (e) => {
+      if (e.target.id === 'barcodeModal') {
+        document.getElementById('barcodeModal').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
