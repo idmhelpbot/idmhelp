@@ -74,10 +74,11 @@ app.get('/barcode/:plu', async (req, res) => {
 
 // ✅ Route barcode-mapping gabungan dari dua file
 app.get('/barcode-mapping', (req, res) => {
-  const dataFiles = [
-    path.join(__dirname, '..', 'data', 'barcodesheet.json'),
-    path.join(__dirname, '..', 'data', 'plucode.json'),
-  ];
+ const dataFiles = [
+  path.join(__dirname, 'data', 'barcodesheet.json'),
+  path.join(__dirname, 'data', 'plucode.json'),
+];
+
 
   const seen = new Set();
   const combined = [];
