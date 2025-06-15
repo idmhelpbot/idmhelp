@@ -4,7 +4,6 @@ const fs = require('fs');
 const { generateBarcodeImage } = require('./barcodeGenerator');
 
 const app = express();
-const PORT = 3000;
 const PAGE_SIZE = 10;
 
 app.use(express.static('public'));
@@ -104,6 +103,4 @@ app.get('/barcode-mapping', (req, res) => {
 });
 
 // Mulai server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+module.exports = app;
